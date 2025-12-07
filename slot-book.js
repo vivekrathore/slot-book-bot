@@ -1,30 +1,149 @@
-const axios = require('axios');
-const { CookieJar } = require('tough-cookie');
-const { wrapper } = require('axios-cookiejar-support');
+const https = require('https');
+const http = require('http');
+const { URL } = require('url');
 
-// Create a cookie jar to maintain session cookies
-const cookieJar = new CookieJar();
-
-// Create axios instance with cookie support
-const client = wrapper(axios.create({
-  jar: cookieJar,
-  withCredentials: true,
-  headers: {
-    'authority': 'peoplefirst.ril.com',
-    'accept': 'application/json, text/plain, */*',
-    'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
-    'content-type': 'application/json',
-    'origin': 'https://peoplefirst.ril.com',
-    'referer': 'https://peoplefirst.ril.com/v2/',
-    'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"macOS"',
-    'sec-fetch-dest': 'empty',
-    'sec-fetch-mode': 'cors',
-    'sec-fetch-site': 'same-origin',
-    'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+// Simple cookie jar implementation
+class SimpleCookieJar {
+  constructor() {
+    this.cookies = {};
   }
-}));
+
+  setCookie(cookieStr, url) {
+    try {
+      const parsedUrl = new URL(url);
+      const domain = parsedUrl.hostname;
+
+      if (!this.cookies[domain]) {
+        this.cookies[domain] = {};
+      }
+
+      // Parse cookie string (simplified)
+      const parts = cookieStr.split(';')[0].split('=');
+      if (parts.length >= 2) {
+        const name = parts[0].trim();
+        const value = parts.slice(1).join('=').trim();
+        this.cookies[domain][name] = value;
+      }
+    } catch (error) {
+      console.warn('Failed to parse cookie:', cookieStr);
+    }
+  }
+
+  getCookieString(url) {
+    try {
+      const parsedUrl = new URL(url);
+      const domain = parsedUrl.hostname;
+      const domainCookies = this.cookies[domain];
+
+      if (!domainCookies) return '';
+
+      return Object.entries(domainCookies)
+        .map(([name, value]) => `${name}=${value}`)
+        .join('; ');
+    } catch (error) {
+      return '';
+    }
+  }
+}
+
+// Create a cookie jar
+const cookieJar = new SimpleCookieJar();
+
+// Helper function to make HTTPS requests
+function makeRequest(url, options = {}) {
+  return new Promise((resolve, reject) => {
+    const parsedUrl = new URL(url);
+    const isHttps = parsedUrl.protocol === 'https:';
+
+    const requestModule = isHttps ? https : http;
+
+    const defaultOptions = {
+      hostname: parsedUrl.hostname,
+      port: parsedUrl.port || (isHttps ? 443 : 80),
+      path: parsedUrl.pathname + parsedUrl.search,
+      method: 'GET',
+      headers: {
+        'authority': 'peoplefirst.ril.com',
+        'accept': 'application/json, text/plain, */*',
+        'accept-language': 'en-GB,en-US;q=0.9,en;q=0.8',
+        'content-type': 'application/json',
+        'origin': 'https://peoplefirst.ril.com',
+        'referer': 'https://peoplefirst.ril.com/v2/',
+        'sec-ch-ua': '"Not.A/Brand";v="8", "Chromium";v="114", "Google Chrome";v="114"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"macOS"',
+        'sec-fetch-dest': 'empty',
+        'sec-fetch-mode': 'cors',
+        'sec-fetch-site': 'same-origin',
+        'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
+      }
+    };
+
+    // Merge options
+    const requestOptions = { ...defaultOptions, ...options };
+    if (options.headers) {
+      requestOptions.headers = { ...defaultOptions.headers, ...options.headers };
+    }
+
+    // Add cookies
+    const cookieString = cookieJar.getCookieString(url);
+    if (cookieString) {
+      requestOptions.headers.Cookie = cookieString;
+    }
+
+    const req = requestModule.request(requestOptions, (res) => {
+      let data = '';
+
+      // Handle cookies from response
+      if (res.headers['set-cookie']) {
+        const setCookies = Array.isArray(res.headers['set-cookie'])
+          ? res.headers['set-cookie']
+          : [res.headers['set-cookie']];
+
+        setCookies.forEach(cookieStr => {
+          cookieJar.setCookie(cookieStr, url);
+        });
+      }
+
+      res.on('data', (chunk) => {
+        data += chunk;
+      });
+
+      res.on('end', () => {
+        try {
+          const result = {
+            status: res.statusCode,
+            statusText: res.statusMessage,
+            headers: res.headers,
+            data: data
+          };
+
+          // Try to parse JSON
+          try {
+            result.data = JSON.parse(data);
+          } catch (e) {
+            // Keep as string if not JSON
+          }
+
+          resolve(result);
+        } catch (error) {
+          reject(error);
+        }
+      });
+    });
+
+    req.on('error', (error) => {
+      reject(error);
+    });
+
+    // Send request body if provided
+    if (options.body) {
+      req.write(JSON.stringify(options.body));
+    }
+
+    req.end();
+  });
+}
 
 class PeopleFirstAuth {
   constructor() {
@@ -47,24 +166,29 @@ class PeopleFirstAuth {
         password: password
       };
 
-      const response = await client.post('https://peoplefirst.ril.com/hrLogin', loginData);
+      const response = await makeRequest('https://peoplefirst.ril.com/hrLogin', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: loginData
+      });
 
       // Check if login was successful
       if (response.status === 200) {
         console.log('✅ Login successful!');
 
-        // Store cookies for future requests
-        this.sessionCookies = await cookieJar.getCookies('https://peoplefirst.ril.com');
+        // Store session info
         this.isLoggedIn = true;
 
         // Log the cookies received (for debugging - remove in production)
-        console.log('🍪 Session cookies received:', this.sessionCookies.map(cookie => `${cookie.key}=${cookie.value}`));
+        console.log('🍪 Session cookies received in jar');
 
         return {
           success: true,
           status: response.status,
           data: response.data,
-          cookies: this.sessionCookies
+          cookies: cookieJar.cookies
         };
       } else {
         console.log('❌ Login failed with status:', response.status);
@@ -80,17 +204,17 @@ class PeopleFirstAuth {
       return {
         success: false,
         error: error.message,
-        status: error.response?.status || 'Unknown'
+        status: 'Unknown'
       };
     }
   }
 
   /**
    * Get current session cookies
-   * @returns {Array} Array of cookie objects
+   * @returns {Object} Cookie jar object
    */
   getSessionCookies() {
-    return this.sessionCookies;
+    return cookieJar.cookies;
   }
 
   /**
@@ -105,8 +229,8 @@ class PeopleFirstAuth {
    * Make authenticated requests using the session
    * @param {string} method - HTTP method
    * @param {string} url - Request URL
-   * @param {Object} config - Additional axios config
-   * @returns {Promise} Axios response
+   * @param {Object} config - Additional config
+   * @returns {Promise} Response object
    */
   async makeAuthenticatedRequest(method, url, config = {}) {
     if (!this.isLoggedIn) {
@@ -114,9 +238,8 @@ class PeopleFirstAuth {
     }
 
     try {
-      const response = await client.request({
+      const response = await makeRequest(url, {
         method,
-        url,
         ...config
       });
 
