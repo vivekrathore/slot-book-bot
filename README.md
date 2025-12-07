@@ -1,11 +1,13 @@
 # Slot Book Bot
 
-A Node.js application for booking slots through an API.
+A Node.js application for booking slots through an API with PeopleFirst authentication.
 
 ## Features
 
 - RESTful API for slot booking
 - Health check endpoint
+- PeopleFirst authentication module
+- Cookie-based session management
 - Express.js framework
 - Basic project structure for scaling
 
@@ -55,11 +57,48 @@ Book a slot (placeholder - to be implemented).
 ### GET /api/available-slots
 Get available slots (placeholder - to be implemented).
 
+## Authentication
+
+The bot includes a PeopleFirst authentication module for accessing RIL's internal systems.
+
+### Usage
+
+```javascript
+const { PeopleFirstAuth } = require('./slot-book');
+
+const auth = new PeopleFirstAuth();
+
+// Login
+const result = await auth.login('username', 'password');
+
+if (result.success) {
+  // Make authenticated requests
+  const response = await auth.makeAuthenticatedRequest('GET', 'https://protected-endpoint.com');
+}
+
+// Logout
+auth.logout();
+```
+
+### Testing Authentication
+
+Run the authentication test:
+```bash
+npm test
+```
+
+Or run the login module directly:
+```bash
+npm run login
+```
+
 ## Project Structure
 
 ```
 slot-book-bot/
-├── index.js          # Main application file
+├── index.js          # Main Express.js application
+├── slot-book.js      # PeopleFirst authentication module
+├── test-login.js     # Authentication testing script
 ├── package.json      # Dependencies and scripts
 ├── .gitignore        # Git ignore rules
 └── README.md         # This file
