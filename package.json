@@ -7,6 +7,7 @@
     "start": "node index.js",
     "dev": "nodemon index.js",
     "test": "node test-login.js",
+    "test-auth": "node test-login.js",
     "login": "node slot-book.js"
   },
   "keywords": ["bot", "booking", "slots"],

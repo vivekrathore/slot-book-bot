@@ -68,12 +68,25 @@ const { PeopleFirstAuth } = require('./slot-book');
 
 const auth = new PeopleFirstAuth();
 
-// Login
-const result = await auth.login('username', 'password');
+// Step 1: Login
+const loginResult = await auth.login('username', 'password');
 
-if (result.success) {
-  // Make authenticated requests
-  const response = await auth.makeAuthenticatedRequest('GET', 'https://protected-endpoint.com');
+if (loginResult.success) {
+  console.log('User:', loginResult.data.data.employeeName);
+
+  // Step 2: Request OTP
+  const otpResult = await auth.requestOTP();
+
+  if (otpResult.success) {
+    // Step 3: Verify OTP (get OTP from user input)
+    const otp = await getUserOTP(); // Implement this function
+    const verifyResult = await auth.verifyOTP(otp);
+
+    if (verifyResult.success) {
+      // Step 4: Make authenticated requests
+      const response = await auth.makeAuthenticatedRequest('GET', 'https://protected-endpoint.com');
+    }
+  }
 }
 
 // Logout

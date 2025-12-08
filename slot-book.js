@@ -148,11 +148,13 @@ function makeRequest(url, options = {}) {
 class PeopleFirstAuth {
   constructor() {
     this.isLoggedIn = false;
+    this.isFullyAuthenticated = false;
     this.sessionCookies = null;
+    this.userData = null;
   }
 
   /**
-   * Login to PeopleFirst system
+   * Login to PeopleFirst system (Step 1)
    * @param {string} username - Username for login
    * @param {string} password - Password for login
    * @returns {Promise<Object>} Login response
@@ -177,15 +179,18 @@ class PeopleFirstAuth {
       // Check if login was successful
       if (response.status === 200) {
         console.log('✅ Login successful!');
+        console.log('👤 User:', response.data?.data?.employeeName || 'Unknown');
 
         // Store session info
         this.isLoggedIn = true;
+        this.userData = response.data?.data;
 
         return {
           success: true,
           status: response.status,
           data: response.data,
-          cookies: cookieJar.cookies
+          cookies: cookieJar.cookies,
+          requiresOTP: true
         };
       } else {
         console.log('❌ Login failed with status:', response.status);
@@ -207,6 +212,114 @@ class PeopleFirstAuth {
   }
 
   /**
+   * Request OTP after login (Step 2)
+   * @returns {Promise<Object>} OTP request response
+   */
+  async requestOTP() {
+    if (!this.isLoggedIn) {
+      throw new Error('Must login first before requesting OTP');
+    }
+
+    try {
+      console.log('📱 Requesting OTP...');
+
+      const otpData = {
+        flag: "m"  // m for mobile, could be "e" for email
+      };
+
+      const response = await makeRequest('https://peoplefirst.ril.com/api/home-i/v2/requestOTP', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: otpData
+      });
+
+      if (response.status === 200) {
+        console.log('✅ OTP sent successfully!');
+        console.log('📲 Please check your mobile for OTP code');
+
+        return {
+          success: true,
+          status: response.status,
+          data: response.data
+        };
+      } else {
+        console.log('❌ OTP request failed with status:', response.status);
+        return {
+          success: false,
+          status: response.status,
+          data: response.data
+        };
+      }
+
+    } catch (error) {
+      console.error('❌ OTP request error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        status: 'Unknown'
+      };
+    }
+  }
+
+  /**
+   * Verify OTP and complete authentication (Step 3)
+   * @param {string} otp - OTP code entered by user
+   * @returns {Promise<Object>} OTP verification response
+   */
+  async verifyOTP(otp) {
+    if (!this.isLoggedIn) {
+      throw new Error('Must login first before verifying OTP');
+    }
+
+    try {
+      console.log('🔍 Verifying OTP...');
+
+      // Note: The actual OTP verification endpoint might be different
+      // This is a placeholder - you may need to find the correct endpoint
+      const verifyData = {
+        otp: otp
+      };
+
+      // TODO: Replace with actual OTP verification endpoint
+      const response = await makeRequest('https://peoplefirst.ril.com/api/home-i/v2/verifyOTP', {
+        method: 'POST',
+        headers: {
+          'content-type': 'application/json'
+        },
+        body: verifyData
+      });
+
+      if (response.status === 200) {
+        console.log('✅ OTP verified! Fully authenticated.');
+        this.isFullyAuthenticated = true;
+
+        return {
+          success: true,
+          status: response.status,
+          data: response.data
+        };
+      } else {
+        console.log('❌ OTP verification failed with status:', response.status);
+        return {
+          success: false,
+          status: response.status,
+          data: response.data
+        };
+      }
+
+    } catch (error) {
+      console.error('❌ OTP verification error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        status: 'Unknown'
+      };
+    }
+  }
+
+  /**
    * Get current session cookies
    * @returns {Object} Cookie jar object
    */
@@ -215,11 +328,27 @@ class PeopleFirstAuth {
   }
 
   /**
-   * Check if user is currently logged in
+   * Check if user has completed basic login
    * @returns {boolean} Login status
    */
-  isAuthenticated() {
+  isLoggedIn() {
     return this.isLoggedIn;
+  }
+
+  /**
+   * Check if user is fully authenticated (login + OTP)
+   * @returns {boolean} Full authentication status
+   */
+  isFullyAuthenticated() {
+    return this.isFullyAuthenticated;
+  }
+
+  /**
+   * Get user data from login response
+   * @returns {Object} User information
+   */
+  getUserData() {
+    return this.userData;
   }
 
   /**
@@ -230,8 +359,8 @@ class PeopleFirstAuth {
    * @returns {Promise} Response object
    */
   async makeAuthenticatedRequest(method, url, config = {}) {
-    if (!this.isLoggedIn) {
-      throw new Error('Not authenticated. Please login first.');
+    if (!this.isFullyAuthenticated) {
+      throw new Error('Not fully authenticated. Please complete login and OTP verification.');
     }
 
     try {
@@ -252,7 +381,9 @@ class PeopleFirstAuth {
    */
   logout() {
     this.isLoggedIn = false;
+    this.isFullyAuthenticated = false;
     this.sessionCookies = null;
+    this.userData = null;
     console.log('👋 Logged out and cleared session');
   }
 }
@@ -268,13 +399,31 @@ if (require.main === module) {
   const username = 'vivek2.rathore';
   const password = 'AAbb@122';
 
+  console.log('🚀 Starting PeopleFirst Authentication Flow...\n');
+
   auth.login(username, password)
-    .then(result => {
-      if (result.success) {
-        console.log('🎉 Authentication successful!');
-        console.log('📋 Response data:', result.data);
+    .then(async (loginResult) => {
+      if (loginResult.success) {
+        console.log('✅ Step 1 - Login successful!');
+        console.log('👤 User:', loginResult.data?.data?.employeeName);
+        console.log('📧 Email:', loginResult.data?.data?.emailID);
+
+        // Step 2 - Request OTP
+        console.log('\n📱 Step 2 - Requesting OTP...');
+        const otpResult = await auth.requestOTP();
+
+        if (otpResult.success) {
+          console.log('✅ OTP sent! Please enter the OTP code:');
+
+          // Note: In a real application, you'd get OTP from user input
+          // For demo purposes, we'll show the flow
+          console.log('🔄 Next: Call auth.verifyOTP(otpCode) with the received OTP');
+
+        } else {
+          console.log('❌ OTP request failed:', otpResult.error || otpResult.status);
+        }
       } else {
-        console.log('💥 Authentication failed:', result.error || result.status);
+        console.log('❌ Step 1 - Login failed:', loginResult.error || loginResult.status);
       }
     })
     .catch(error => {
