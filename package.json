@@ -12,6 +12,8 @@
     "book": "node test-login.js --book-only",
     "build": "pkg slot-book-bot.js --targets node18-win-x64 --output slot-book-bot.exe",
     "build-exe": "pkg slot-book-bot.js --targets node18-win-x64 --output dist/slot-book-bot.exe",
+    "build-mac": "pkg slot-book-bot.js --targets node18-macos-x64 --output slot-book-bot-mac",
+    "build-mac-app": "pkg slot-book-bot.js --targets node18-macos-x64 --output dist/slot-book-bot-mac",
     "create-installer": "node create-installer.js"
   },
   "keywords": ["bot", "booking", "slots"],

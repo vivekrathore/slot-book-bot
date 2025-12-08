@@ -1,0 +1,30 @@
+#!/bin/bash
+
+# AppleScript applet launcher for Slot Booking Bot
+# This script will be executed when the .app is double-clicked
+
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="$(dirname "$DIR")"
+
+# Change to the app directory
+cd "$APP_DIR"
+
+# Check if executable exists
+if [ ! -f "slot-book-bot-mac" ]; then
+    osascript -e 'display dialog "Error: slot-book-bot-mac executable not found!\n\nPlease ensure the executable is in the same directory as this app." buttons {"OK"} default button "OK" with icon stop'
+    exit 1
+fi
+
+# Make executable if not already
+chmod +x slot-book-bot-mac
+
+# Show welcome dialog
+osascript -e 'display dialog "Welcome to PeopleFirst Slot Booking Bot!\n\nThe bot will guide you through setup and automatically book slots at midnight.\n\nClick OK to continue." buttons {"OK"} default button "OK" with icon note'
+
+# Run the executable in Terminal
+osascript <<EOF
+tell application "Terminal"
+    activate
+    do script "cd '$APP_DIR' && echo '========================================" && echo '  PeopleFirst Slot Booking Bot' && echo '========================================" && echo '' && ./slot-book-bot-mac"
+end tell
+EOF
