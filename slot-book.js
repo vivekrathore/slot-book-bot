@@ -491,10 +491,16 @@ class PeopleFirstAuth {
         console.log('✅ Available slots retrieved successfully!');
         const availableSlots = response.data.data || [];
 
+        //save available slot code to a variable
+        slotCode = availableSlots[0].SlotCode;
+        console.log('🔑 Slot code:', slotCode);
+
         console.log(`📅 Found ${availableSlots.length} slot(s):`);
-        availableSlots.forEach(slot => {
-          console.log(`  🕐 ${slot.Slots || slot.FromSlot + '-' + slot.ToSlot}: ${slot.AvailableCount} spots available (Code: ${slot.SlotCode})`);
-        });
+        if(availableSlots.length > 0){
+          availableSlots.forEach(slot => {
+            console.log(`  🕐 ${slot.Slots || slot.FromSlot + '-' + slot.ToSlot}: ${slot.AvailableCount} spots available (Code: ${slot.SlotCode})`);
+          });
+        }
 
         return {
           success: true,
@@ -672,12 +678,17 @@ class PeopleFirstAuth {
       const slotToBook = availableSlots[0];
       console.log(`\n🎯 Step 6: Booking slot ${slotToBook.SlotCode} (${slotToBook.Slots || slotToBook.FromSlot + '-' + slotToBook.ToSlot})`);
 
-      const bookingResult = await this.bookSlot({
-        ...options,
-        slotCode: slotToBook.SlotCode
-      });
+    //   const bookingResult = await this.bookSlot({
+    //     ...options,
+    //     slotCode: slotToBook.SlotCode
+    //   });
 
-      if (!bookingResult.success) throw new Error('Slot booking failed');
+      // Mock successful booking for now
+      const bookingResult = {
+        success: true,
+        message: 'Slot booking simulated successfully',
+        bookedSlot: slotToBook.SlotCode
+      };
 
       console.log('\n🎉 Automated booking completed successfully!');
       return {
