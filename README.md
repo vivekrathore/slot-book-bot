@@ -170,8 +170,17 @@ if (slots.availableSlots.length > 0) {
 
 ### Activity Codes
 
-- `GYMM` - Zumba/Gym activities
+- `ZUMB` - Zumba activities (default)
+- `GYMM` - Gym activities
 - Other codes may be available for different activities
+
+### Default Configuration
+
+- **Activity**: Zumba (`ZUMB`)
+- **Location**: RIL Mumbai (`RIL0000005`)
+- **Building**: AL2 (`AL20`)
+- **Date**: Tomorrow's date
+- **Slot**: First available slot
 
 ### Testing
 
@@ -189,6 +198,21 @@ Or run the authentication module directly:
 ```bash
 npm run auth
 ```
+
+### Complete Workflow
+
+Run the full booking workflow with OTP input:
+```bash
+node slot-book.js
+```
+
+This will:
+1. Login with your credentials
+2. Request OTP to your mobile
+3. Prompt for OTP input
+4. Verify OTP and fetch token
+5. Check available Zumba slots for tomorrow
+6. Book the first available slot
 
 **Note**: Tests include demo authentication for slot booking functionality when real authentication fails in sandbox environments.
 
