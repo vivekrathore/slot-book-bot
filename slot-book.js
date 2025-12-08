@@ -386,6 +386,36 @@ class PeopleFirstAuth {
       throw new Error('Must fetch authentication token before checking slots');
     }
 
+    // Handle demo/testing tokens
+    if (this.authToken === 'demo-token-for-testing') {
+      console.log('🎭 Using demo token - returning mock slot data');
+      const mockSlots = [
+        {
+          SlotCode: 'SL339',
+          FromSlot: '20:00',
+          ToSlot: '21:00',
+          Capacity: 120,
+          Slots: '20:00-21:00',
+          AvailableCount: 21
+        },
+        {
+          SlotCode: 'SL340',
+          FromSlot: '21:00',
+          ToSlot: '22:00',
+          Capacity: 120,
+          Slots: '21:00-22:00',
+          AvailableCount: 113
+        }
+      ];
+
+      return {
+        success: true,
+        status: 200,
+        data: { success: true, data: mockSlots },
+        availableSlots: mockSlots
+      };
+    }
+
     const {
       activityCode = 'GYMM',
       locationCode = 'RIL0000005',
@@ -468,6 +498,19 @@ class PeopleFirstAuth {
   async bookSlot(options = {}) {
     if (!this.authToken) {
       throw new Error('Must fetch authentication token before booking slots');
+    }
+
+    // Handle demo/testing tokens
+    if (this.authToken === 'demo-token-for-testing') {
+      console.log('🎭 Using demo token - simulating successful booking');
+      const mockBooking = {
+        success: true,
+        message: 'Slot booked successfully (demo)',
+        data: { success: true, message: 'Demo booking completed' },
+        bookedSlot: options.slotCode || 'SL339'
+      };
+
+      return mockBooking;
     }
 
     const {
