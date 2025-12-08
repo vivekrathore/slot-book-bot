@@ -170,15 +170,16 @@ if (slots.availableSlots.length > 0) {
 
 ### Activity Codes
 
-- `ZUMB` - Zumba activities (default)
+- `SWIM` - Swimming activities (default)
+- `ZUMB` - Zumba activities
 - `GYMM` - Gym activities
 - Other codes may be available for different activities
 
 ### Default Configuration
 
-- **Activity**: Zumba (`ZUMB`)
+- **Activity**: Swimming (`SWIM`)
 - **Location**: RIL Mumbai (`RIL0000005`)
-- **Building**: AL2 (`AL20`)
+- **Building**: AL13 (`AL13`)
 - **Date**: Tomorrow's date
 - **Slot**: First available slot
 

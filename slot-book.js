@@ -400,12 +400,10 @@ class PeopleFirstAuth {
   /**
    * Check available slots for an activity (Step 5)
    * @param {Object} options - Slot search options
-   * @param {string} options.activityCode - Activity code (e.g., 'GYMM' for Zumba)
+   * @param {string} options.activityCode - Activity code (e.g., 'SWIM' for Swimming)
    * @param {string} options.locationCode - Location code (e.g., 'RIL0000005')
-   * @param {string} options.buildingCode - Building code (e.g., 'AL2')
+   * @param {string} options.buildingCode - Building code (e.g., 'AL13')
    * @param {string} options.gameDate - Date in YYYY-MM-DD format
-   * @param {string} options.slotCode - Specific slot code (optional)
-   * @param {string} options.proficiency - Proficiency level (default: '2')
    * @returns {Promise<Object>} Available slots response
    */
   async checkAvailableSlots(options = {}) {
@@ -418,20 +416,28 @@ class PeopleFirstAuth {
       console.log('🎭 Using demo token - returning mock slot data');
       const mockSlots = [
         {
-          SlotCode: 'SL339',
-          FromSlot: '20:00',
-          ToSlot: '21:00',
-          Capacity: 120,
-          Slots: '20:00-21:00',
-          AvailableCount: 21
+          SlotCode: 'SL001',
+          FromSlot: '06:00',
+          ToSlot: '07:00',
+          Capacity: 50,
+          Slots: '06:00-07:00',
+          AvailableCount: 15
         },
         {
-          SlotCode: 'SL340',
-          FromSlot: '21:00',
-          ToSlot: '22:00',
-          Capacity: 120,
-          Slots: '21:00-22:00',
-          AvailableCount: 113
+          SlotCode: 'SL002',
+          FromSlot: '07:00',
+          ToSlot: '08:00',
+          Capacity: 50,
+          Slots: '07:00-08:00',
+          AvailableCount: 8
+        },
+        {
+          SlotCode: 'SL003',
+          FromSlot: '08:00',
+          ToSlot: '09:00',
+          Capacity: 50,
+          Slots: '08:00-09:00',
+          AvailableCount: 23
         }
       ];
 
@@ -444,9 +450,9 @@ class PeopleFirstAuth {
     }
 
     const {
-      activityCode = 'ZUMB',
+      activityCode = 'SWIM',
       locationCode = 'RIL0000005',
-      buildingCode = 'AL20',
+      buildingCode = 'AL13',
       gameDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       slotCode = 'SL339',
       proficiency = '2'
@@ -457,32 +463,26 @@ class PeopleFirstAuth {
       console.log(`🔑 Using access token: ${this.authToken.access_token.substring(0, 20)}...`);
 
       const slotData = {
-        LocationCode: locationCode,
-        ActivityCode: activityCode,
-        GameDate: gameDate,
         BuildingCode: buildingCode,
-        SlotCode: slotCode,
-        GameType: '',
-        Proficiency: proficiency,
-        IsAvailLocker: 0,
-        isMultiplayer: 0,
-        PlayersDomainID: []
+        GameDate: gameDate,
+        LocationCode: locationCode,
+        ActivityCode: activityCode
       };
 
       console.log('🍪 Cookies available:', Object.keys(cookieJar.cookies).length, 'domains');
 
-      const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
-        method: 'POST',
+      const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_SportsMasters/1.0.0/availabletimeslots', {
+        method: 'POST', // Even though it's called availabletimeslots, it's a POST request
         headers: {
           'authorization': `Bearer ${this.authToken.access_token}`,
           'content-type': 'application/json',
-          'custom-header': '9ef72794e0b2f5fee72017d892ff7fa9:da242b56d6fca967:0:01',
+          'custom-header': '632bb5a0482100f5d6059f7c41910e8f:c8892bcc230eb121:0:00',
           'sessionid': 'G9R71RNM6MC5FmX0B4u39BxcPo1dmTfpee92DNON3STP6SjP4FavR73NQJrU1607aaBn7mhMJE6_1765196743453',
-          'traceparent': '00-9ef72794e0b2f5fee72017d892ff7fa9-da242b56d6fca967-01',
-          'x-amzn-trace-id': 'Root=1-9ef72794-e0b2f5fee72017d892ff7fa9;Parent=da242b56d6fca967;Sampled=1',
-          'x-b3-sampled': '1',
-          'x-b3-spanid': 'da242b56d6fca967',
-          'x-b3-traceid': '9ef72794e0b2f5fee72017d892ff7fa9'
+          'traceparent': '00-632bb5a0482100f5d6059f7c41910e8f-c8892bcc230eb121-00, 00-21ec39334a0a2e1507ed4cd925a4b762-fae5568583c92ced-01',
+          'x-amzn-trace-id': 'Root=1-632bb5a0-482100f5d6059f7c41910e8f;Parent=c8892bcc230eb121;Sampled=0',
+          'x-b3-sampled': '0',
+          'x-b3-spanid': 'c8892bcc230eb121',
+          'x-b3-traceid': '632bb5a0482100f5d6059f7c41910e8f'
         },
         body: slotData
       });
@@ -493,7 +493,7 @@ class PeopleFirstAuth {
 
         console.log(`📅 Found ${availableSlots.length} slot(s):`);
         availableSlots.forEach(slot => {
-          console.log(`  🕐 ${slot.Slots}: ${slot.AvailableCount} spots available (Code: ${slot.SlotCode})`);
+          console.log(`  🕐 ${slot.Slots || slot.FromSlot + '-' + slot.ToSlot}: ${slot.AvailableCount} spots available (Code: ${slot.SlotCode})`);
         });
 
         return {
@@ -504,6 +504,7 @@ class PeopleFirstAuth {
         };
       } else {
         console.log('❌ Slot check failed with status:', response.status);
+        console.log('Response:', response.data);
         return {
           success: false,
           status: response.status,
@@ -551,12 +552,12 @@ class PeopleFirstAuth {
     }
 
     const {
-      activityCode = 'ZUMB',
+      activityCode = 'SWIM',
       locationCode = 'RIL0000005',
-      buildingCode = 'AL20',
+      buildingCode = 'AL13',
       //get tomorrow's date
       gameDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-      slotCode = 'SL339',
+    //   slotCode = 'SL339',
       proficiency = '2'
     } = options;
 
@@ -575,6 +576,10 @@ class PeopleFirstAuth {
         isMultiplayer: 0,
         PlayersDomainID: []
       };
+
+      // For swimming and other activities, we might need additional parameters
+      // based on the slot information we got from checkAvailableSlots
+      // This can be enhanced based on the specific activity requirements
 
       const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
         method: 'POST',
@@ -665,7 +670,7 @@ class PeopleFirstAuth {
 
       // Step 6: Book first available slot
       const slotToBook = availableSlots[0];
-      console.log(`\n🎯 Step 6: Booking slot ${slotToBook.SlotCode} (${slotToBook.Slots})`);
+      console.log(`\n🎯 Step 6: Booking slot ${slotToBook.SlotCode} (${slotToBook.Slots || slotToBook.FromSlot + '-' + slotToBook.ToSlot})`);
 
       const bookingResult = await this.bookSlot({
         ...options,
@@ -696,6 +701,14 @@ class PeopleFirstAuth {
    */
   getSessionCookies() {
     return cookieJar.cookies;
+  }
+
+  /**
+   * Get current authorization token
+   * @returns {Object} Token object with access_token, refresh_token, etc.
+   */
+  getAuthToken() {
+    return this.authToken;
   }
 
   /**
