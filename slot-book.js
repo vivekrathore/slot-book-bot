@@ -2,6 +2,7 @@ const https = require('https');
 const http = require('http');
 const { URL } = require('url');
 const readline = require('readline');
+const constants = require('constants');
 
 // Simple cookie jar implementation
 class SimpleCookieJar {
@@ -79,6 +80,20 @@ function makeRequest(url, options = {}) {
         'user-agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36'
       }
     };
+
+    // Add SSL/TLS options for HTTPS requests to handle handshake issues
+    if (isHttps) {
+      defaultOptions.rejectUnauthorized = false; // Allow self-signed certificates
+      defaultOptions.secureOptions = constants.SSL_OP_NO_TLSv1 | constants.SSL_OP_NO_TLSv1_1; // Disable TLS 1.0 and 1.1
+      defaultOptions.ciphers = [
+        'ECDHE-RSA-AES128-GCM-SHA256',
+        'ECDHE-RSA-AES256-GCM-SHA384',
+        'ECDHE-RSA-AES128-SHA256',
+        'ECDHE-RSA-AES256-SHA384',
+        'AES128-GCM-SHA256',
+        'AES256-GCM-SHA384'
+      ].join(':'); // Modern cipher suites
+    }
 
     // Merge options
     const requestOptions = { ...defaultOptions, ...options };
@@ -733,8 +748,8 @@ if (require.main === module) {
   const auth = new PeopleFirstAuth();
 
   // Replace with actual credentials
-  const username = 'vivek2.rathore';
-  const password = 'AAbb@122';
+  const username = 'shivam.gangwar';
+  const password = 'Gate#2029@143*';
 
   console.log('🚀 Starting PeopleFirst Authentication Flow...\n');
 
