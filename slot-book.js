@@ -490,10 +490,11 @@ class PeopleFirstAuth {
       if (response.status === 200 && response.data?.success) {
         console.log('✅ Available slots retrieved successfully!');
         const availableSlots = response.data.data || [];
+        console.log('🔑 Available slots:', availableSlots);
 
         //save available slot code to a variable
-        slotCode = availableSlots[0].SlotCode;
-        console.log('🔑 Slot code:', slotCode);
+        // slotCode = availableSlots[0].SlotCode;
+        // console.log('🔑 Slot code:', slotCode);
 
         console.log(`📅 Found ${availableSlots.length} slot(s):`);
         if(availableSlots.length > 0){
@@ -563,7 +564,7 @@ class PeopleFirstAuth {
       buildingCode = 'AL13',
       //get tomorrow's date
       gameDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
-    //   slotCode = 'SL339',
+      slotCode = 'SL339',
       proficiency = '2'
     } = options;
 
@@ -582,6 +583,8 @@ class PeopleFirstAuth {
         isMultiplayer: 0,
         PlayersDomainID: []
       };
+
+      console.log('🔑 Booking data:', bookingData);
 
       // For swimming and other activities, we might need additional parameters
       // based on the slot information we got from checkAvailableSlots
@@ -848,8 +851,8 @@ if (require.main === module) {
 
                 // Check available slots
                 const slotsResult = await auth.checkAvailableSlots({
-                  activityCode: 'ZUMB',
-                  buildingCode: 'AL20'
+                  activityCode: 'SWIM',
+                  buildingCode: 'AL13'
                 });
                 if (slotsResult.success) {
                   console.log('✅ Available slots checked!');
@@ -863,8 +866,8 @@ if (require.main === module) {
 
                     const bookingResult = await auth.bookSlot({
                       slotCode: slotToBook.SlotCode,
-                      activityCode: 'ZUMB',
-                      buildingCode: 'AL20'
+                      activityCode: 'SWIM',
+                      buildingCode: 'AL13'
                     });
 
                     if (bookingResult.success) {

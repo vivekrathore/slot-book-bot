@@ -9,11 +9,26 @@
     "test": "node test-login.js",
     "auth": "node slot-book.js",
     "auth-axios": "node slot-book-axios.js",
-    "book": "node test-login.js --book-only"
+    "book": "node test-login.js --book-only",
+    "build": "pkg slot-book-bot.js --targets node18-win-x64 --output slot-book-bot.exe",
+    "build-exe": "pkg slot-book-bot.js --targets node18-win-x64 --output dist/slot-book-bot.exe",
+    "create-installer": "node create-installer.js"
   },
   "keywords": ["bot", "booking", "slots"],
   "author": "",
   "license": "ISC",
   "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "pkg": {
+    "scripts": [
+      "slot-book-bot.js"
+    ],
+    "assets": [
+      "node_modules/**/*",
+      "booking-config.json"
+    ],
+    "outputPath": "dist"
+  }
 }

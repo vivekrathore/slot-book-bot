@@ -237,6 +237,30 @@ The axios version (`slot-book-axios.js`) includes enhanced SSL/TLS configuration
 
 **Note**: Tests include demo authentication for slot booking functionality when real authentication fails in sandbox environments.
 
+## 🪟 Windows Executable
+
+For easy deployment on Windows systems, you can build a standalone executable:
+
+### Building the Executable
+
+```bash
+# Install pkg (build tool)
+npm install
+
+# Build Windows executable
+npm run build-exe
+
+# The executable will be created in the 'dist' folder
+```
+
+### Using the Executable
+
+1. Copy `slot-book-bot.exe` to your Windows machine
+2. Run the executable - it will guide you through setup
+3. The bot will automatically book slots at midnight
+
+See `WINDOWS_README.md` for detailed Windows-specific instructions.
+
 ## Project Structure
 
 ```
