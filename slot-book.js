@@ -181,9 +181,6 @@ class PeopleFirstAuth {
         // Store session info
         this.isLoggedIn = true;
 
-        // Log the cookies received (for debugging - remove in production)
-        console.log('🍪 Session cookies received in jar');
-
         return {
           success: true,
           status: response.status,

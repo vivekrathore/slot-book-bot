@@ -11,7 +11,7 @@ async function testLogin() {
   if (result.success) {
     console.log('✅ Login successful!');
     console.log('📊 Response data:', JSON.stringify(result.data, null, 2));
-    console.log('🍪 Cookies received:', result.cookies.length);
+    console.log('🍪 Cookies received:', Object.keys(result.cookies || {}).length, 'domains');
 
     // Test if authenticated
     console.log('🔍 Is authenticated:', auth.isAuthenticated());
