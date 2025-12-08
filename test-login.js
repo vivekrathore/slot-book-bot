@@ -75,8 +75,8 @@ async function testFullAuthentication() {
 
     // Show final authentication status
     console.log('\n📊 Final Authentication Status:');
-    console.log('🔓 Logged in:', auth.isLoggedIn());
-    console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated());
+    console.log('🔓 Logged in:', auth.isLoggedIn===true);
+    console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated===true);
     console.log('🎫 Token available:', !!auth.getAuthToken());
 
     // Logout
@@ -102,5 +102,88 @@ function getOTPFromUser() {
   });
 }
 
-// Run the full authentication test
-testFullAuthentication().catch(console.error);
+async function testSlotBooking() {
+  console.log('🎯 Testing Complete Slot Booking Flow...\n');
+
+  const auth = new PeopleFirstAuth();
+
+  try {
+    // For demo purposes, we'll simulate the authentication steps
+    // In a real scenario, you would complete the full auth flow first
+
+    console.log('⚠️  Note: This test assumes authentication is already completed');
+    console.log('💡 In production, complete login → OTP → token first\n');
+
+    // Test slot availability check
+    console.log('🔍 Checking available Zumba slots...');
+    const slotsResult = await auth.checkAvailableSlots({
+      activityCode: 'GYMM',
+      gameDate: '2025-12-08',
+      locationCode: 'RIL0000005',
+      buildingCode: 'AL2'
+    });
+
+    if (slotsResult.success) {
+      console.log('✅ Slot check completed!');
+
+      // Find available slots
+      const availableSlots = slotsResult.availableSlots.filter(slot => slot.AvailableCount > 0);
+
+      if (availableSlots.length > 0) {
+        console.log(`📅 Found ${availableSlots.length} available slot(s)`);
+
+        // For demo, we'll just log the available slots
+        // In production, you could automatically book the first available
+        availableSlots.forEach(slot => {
+          console.log(`  🕐 ${slot.Slots}: ${slot.AvailableCount} spots available`);
+        });
+
+        // Example booking (commented out to avoid actual booking)
+        /*
+        console.log('\n🎯 Booking first available slot...');
+        const slotToBook = availableSlots[0];
+        const bookingResult = await auth.bookSlot({
+          activityCode: 'GYMM',
+          gameDate: '2025-12-08',
+          slotCode: slotToBook.SlotCode,
+          locationCode: 'RIL0000005',
+          buildingCode: 'AL2'
+        });
+
+        if (bookingResult.success) {
+          console.log('✅ Slot booked successfully!');
+          console.log(`🎉 You have booked: ${slotToBook.Slots} (${slotToBook.SlotCode})`);
+        } else {
+          console.log('❌ Booking failed:', bookingResult.error || bookingResult.status);
+        }
+        */
+
+      } else {
+        console.log('❌ No available slots found');
+      }
+
+    } else {
+      console.log('❌ Slot check failed:', slotsResult.error || slotsResult.status);
+    }
+
+  } catch (error) {
+    console.error('💥 Slot booking test failed:', error.message);
+  }
+}
+
+// Run the tests
+async function runAllTests() {
+  console.log('🚀 Running All Tests...\n');
+
+  console.log('=' .repeat(50));
+  console.log('🧪 AUTHENTICATION TEST');
+  console.log('=' .repeat(50));
+  await testFullAuthentication();
+
+  console.log('\n' + '=' .repeat(50));
+  console.log('🎯 SLOT BOOKING TEST');
+  console.log('=' .repeat(50));
+  await testSlotBooking();
+}
+
+runAllTests().catch(console.error);

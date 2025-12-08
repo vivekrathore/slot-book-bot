@@ -55,7 +55,24 @@ Health check endpoint that returns server status.
 Book a slot (placeholder - to be implemented).
 
 ### GET /api/available-slots
-Get available slots (placeholder - to be implemented).
+Get available slots (returns mock data - use authenticated endpoints for real data).
+
+### POST /api/book-slot
+Book a slot automatically with full authentication flow.
+```json
+{
+  "username": "your.username",
+  "password": "your_password",
+  "otpCode": "123456",
+  "activityCode": "GYMM",
+  "gameDate": "2025-12-08",
+  "locationCode": "RIL0000005",
+  "buildingCode": "AL2"
+}
+```
+
+### POST /api/check-slots
+Check available slots for booking (requires authentication).
 
 ## Authentication
 
@@ -101,6 +118,58 @@ try {
   auth.logout(); // Clean up session
 }
 ```
+
+## Slot Booking
+
+The bot includes automated slot booking functionality for activities like Zumba.
+
+### Booking Flow
+
+1. **Authenticate** - Complete login, OTP, and token steps
+2. **Check Availability** - Find available slots for desired activity/date
+3. **Book Slot** - Automatically book the first available slot
+
+### Usage
+
+```javascript
+const { PeopleFirstAuth } = require('./slot-book');
+
+const auth = new PeopleFirstAuth();
+
+// Automated booking (requires OTP)
+const result = await auth.autoBookSlot({
+  username: 'your.username',
+  password: 'your_password',
+  otpCode: '123456',
+  activityCode: 'GYMM',    // Zumba/Gym activity
+  gameDate: '2025-12-08', // Date to book
+  locationCode: 'RIL0000005',
+  buildingCode: 'AL2'
+});
+
+if (result.success) {
+  console.log('✅ Slot booked:', result.bookedSlot.Slots);
+}
+
+// Manual booking (after authentication)
+const slots = await auth.checkAvailableSlots({
+  activityCode: 'GYMM',
+  gameDate: '2025-12-08'
+});
+
+if (slots.availableSlots.length > 0) {
+  const booking = await auth.bookSlot({
+    slotCode: slots.availableSlots[0].SlotCode,
+    activityCode: 'GYMM',
+    gameDate: '2025-12-08'
+  });
+}
+```
+
+### Activity Codes
+
+- `GYMM` - Zumba/Gym activities
+- Other codes may be available for different activities
 
 ### Testing Authentication
 

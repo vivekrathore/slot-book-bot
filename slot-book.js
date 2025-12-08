@@ -91,6 +91,11 @@ function makeRequest(url, options = {}) {
       requestOptions.headers.Cookie = cookieString;
     }
 
+    // Add authorization header if provided in options
+    if (options.headers?.authorization) {
+      requestOptions.headers.authorization = options.headers.authorization;
+    }
+
     const req = requestModule.request(requestOptions, (res) => {
       let data = '';
 
@@ -361,6 +366,238 @@ class PeopleFirstAuth {
         success: false,
         error: error.message,
         status: 'Unknown'
+      };
+    }
+  }
+
+  /**
+   * Check available slots for an activity (Step 5)
+   * @param {Object} options - Slot search options
+   * @param {string} options.activityCode - Activity code (e.g., 'GYMM' for Zumba)
+   * @param {string} options.locationCode - Location code (e.g., 'RIL0000005')
+   * @param {string} options.buildingCode - Building code (e.g., 'AL2')
+   * @param {string} options.gameDate - Date in YYYY-MM-DD format
+   * @param {string} options.slotCode - Specific slot code (optional)
+   * @param {string} options.proficiency - Proficiency level (default: '2')
+   * @returns {Promise<Object>} Available slots response
+   */
+  async checkAvailableSlots(options = {}) {
+    if (!this.authToken) {
+      throw new Error('Must fetch authentication token before checking slots');
+    }
+
+    const {
+      activityCode = 'GYMM',
+      locationCode = 'RIL0000005',
+      buildingCode = 'AL2',
+      gameDate = new Date().toISOString().split('T')[0],
+      slotCode = 'SL339',
+      proficiency = '2'
+    } = options;
+
+    try {
+      console.log(`🔍 Checking available slots for ${activityCode} on ${gameDate}...`);
+
+      const slotData = {
+        LocationCode: locationCode,
+        ActivityCode: activityCode,
+        GameDate: gameDate,
+        BuildingCode: buildingCode,
+        SlotCode: slotCode,
+        GameType: '',
+        Proficiency: proficiency,
+        IsAvailLocker: 0,
+        isMultiplayer: 0,
+        PlayersDomainID: []
+      };
+
+      const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
+        method: 'POST',
+        headers: {
+          'authorization': `Bearer ${this.authToken}`,
+          'content-type': 'application/json'
+        },
+        body: slotData
+      });
+
+      if (response.status === 200 && response.data?.success) {
+        console.log('✅ Available slots retrieved successfully!');
+        const availableSlots = response.data.data || [];
+
+        console.log(`📅 Found ${availableSlots.length} slot(s):`);
+        availableSlots.forEach(slot => {
+          console.log(`  🕐 ${slot.Slots}: ${slot.AvailableCount} spots available (Code: ${slot.SlotCode})`);
+        });
+
+        return {
+          success: true,
+          status: response.status,
+          data: response.data,
+          availableSlots: availableSlots
+        };
+      } else {
+        console.log('❌ Slot check failed with status:', response.status);
+        return {
+          success: false,
+          status: response.status,
+          data: response.data
+        };
+      }
+
+    } catch (error) {
+      console.error('❌ Slot check error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        status: 'Unknown'
+      };
+    }
+  }
+
+  /**
+   * Book a slot for an activity (Step 6)
+   * @param {Object} options - Booking options
+   * @param {string} options.activityCode - Activity code (e.g., 'GYMM' for Zumba)
+   * @param {string} options.locationCode - Location code
+   * @param {string} options.buildingCode - Building code
+   * @param {string} options.gameDate - Date in YYYY-MM-DD format
+   * @param {string} options.slotCode - Slot code to book
+   * @param {string} options.proficiency - Proficiency level
+   * @returns {Promise<Object>} Booking response
+   */
+  async bookSlot(options = {}) {
+    if (!this.authToken) {
+      throw new Error('Must fetch authentication token before booking slots');
+    }
+
+    const {
+      activityCode = 'GYMM',
+      locationCode = 'RIL0000005',
+      buildingCode = 'AL2',
+      gameDate = new Date().toISOString().split('T')[0],
+      slotCode = 'SL339',
+      proficiency = '2'
+    } = options;
+
+    try {
+      console.log(`🎯 Booking slot ${slotCode} for ${activityCode} on ${gameDate}...`);
+
+      const bookingData = {
+        LocationCode: locationCode,
+        ActivityCode: activityCode,
+        GameDate: gameDate,
+        BuildingCode: buildingCode,
+        SlotCode: slotCode,
+        GameType: '',
+        Proficiency: proficiency,
+        IsAvailLocker: 0,
+        isMultiplayer: 0,
+        PlayersDomainID: []
+      };
+
+      const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
+        method: 'POST',
+        headers: {
+          'authorization': `Bearer ${this.authToken}`,
+          'content-type': 'application/json'
+        },
+        body: bookingData
+      });
+
+      if (response.status === 200 && response.data?.success) {
+        console.log('✅ Slot booked successfully!');
+
+        return {
+          success: true,
+          status: response.status,
+          data: response.data,
+          bookedSlot: slotCode
+        };
+      } else {
+        console.log('❌ Slot booking failed with status:', response.status);
+        return {
+          success: false,
+          status: response.status,
+          data: response.data
+        };
+      }
+
+    } catch (error) {
+      console.error('❌ Slot booking error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        status: 'Unknown'
+      };
+    }
+  }
+
+  /**
+   * Automated slot booking process
+   * @param {Object} options - Booking preferences
+   * @returns {Promise<Object>} Complete booking result
+   */
+  async autoBookSlot(options = {}) {
+    try {
+      console.log('🤖 Starting automated slot booking process...\n');
+
+      // Step 1: Login
+      console.log('🔐 Step 1: Login');
+      const loginResult = await this.login(options.username || 'vivek2.rathore', options.password || 'AAbb@122');
+      if (!loginResult.success) throw new Error('Login failed');
+
+      // Step 2: Request OTP
+      console.log('\n📱 Step 2: Requesting OTP');
+      const otpResult = await this.requestOTP('m');
+      if (!otpResult.success) throw new Error('OTP request failed');
+
+      // Step 3: Verify OTP (would need user input in real scenario)
+      console.log('\n🔍 Step 3: OTP verification needed');
+      if (!options.otpCode) {
+        throw new Error('OTP code required for automated booking');
+      }
+
+      const verifyResult = await this.verifyOTP(options.otpCode);
+      if (!verifyResult.success) throw new Error('OTP verification failed');
+
+      // Step 4: Fetch token
+      console.log('\n🎫 Step 4: Fetching token');
+      const tokenResult = await this.fetchToken();
+      if (!tokenResult.success) throw new Error('Token fetch failed');
+
+      // Step 5: Check available slots
+      console.log('\n🔍 Step 5: Checking available slots');
+      const slotsResult = await this.checkAvailableSlots(options);
+      if (!slotsResult.success) throw new Error('Slot check failed');
+
+      const availableSlots = slotsResult.availableSlots.filter(slot => slot.AvailableCount > 0);
+      if (availableSlots.length === 0) {
+        throw new Error('No available slots found');
+      }
+
+      // Step 6: Book first available slot
+      const slotToBook = availableSlots[0];
+      console.log(`\n🎯 Step 6: Booking slot ${slotToBook.SlotCode} (${slotToBook.Slots})`);
+
+      const bookingResult = await this.bookSlot({
+        ...options,
+        slotCode: slotToBook.SlotCode
+      });
+
+      if (!bookingResult.success) throw new Error('Slot booking failed');
+
+      console.log('\n🎉 Automated booking completed successfully!');
+      return {
+        success: true,
+        bookedSlot: slotToBook,
+        bookingDetails: bookingResult
+      };
+
+    } catch (error) {
+      console.error('❌ Automated booking failed:', error.message);
+      return {
+        success: false,
+        error: error.message
       };
     }
   }
