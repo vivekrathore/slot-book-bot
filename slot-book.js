@@ -361,6 +361,17 @@ class PeopleFirstAuth {
         console.log('✅ Token fetched successfully!');
         this.authToken = response.data?.token || response.data;
 
+        // Store any cookies from token response
+        if (response.headers && response.headers['set-cookie']) {
+          const setCookies = Array.isArray(response.headers['set-cookie'])
+            ? response.headers['set-cookie']
+            : [response.headers['set-cookie']];
+
+          setCookies.forEach(cookieStr => {
+            cookieJar.setCookie(cookieStr, 'https://peoplefirst.ril.com');
+          });
+        }
+
         return {
           success: true,
           status: response.status,
@@ -443,6 +454,7 @@ class PeopleFirstAuth {
 
     try {
       console.log(`🔍 Checking available slots for ${activityCode} on ${gameDate}...`);
+      console.log(`🔑 Using access token: ${this.authToken.access_token.substring(0, 20)}...`);
 
       const slotData = {
         LocationCode: locationCode,
@@ -457,11 +469,20 @@ class PeopleFirstAuth {
         PlayersDomainID: []
       };
 
+      console.log('🍪 Cookies available:', Object.keys(cookieJar.cookies).length, 'domains');
+
       const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
         method: 'POST',
         headers: {
-          'authorization': `Bearer ${this.authToken}`,
-          'content-type': 'application/json'
+          'authorization': `Bearer ${this.authToken.access_token}`,
+          'content-type': 'application/json',
+          'custom-header': '9ef72794e0b2f5fee72017d892ff7fa9:da242b56d6fca967:0:01',
+          'sessionid': 'G9R71RNM6MC5FmX0B4u39BxcPo1dmTfpee92DNON3STP6SjP4FavR73NQJrU1607aaBn7mhMJE6_1765196743453',
+          'traceparent': '00-9ef72794e0b2f5fee72017d892ff7fa9-da242b56d6fca967-01',
+          'x-amzn-trace-id': 'Root=1-9ef72794-e0b2f5fee72017d892ff7fa9;Parent=da242b56d6fca967;Sampled=1',
+          'x-b3-sampled': '1',
+          'x-b3-spanid': 'da242b56d6fca967',
+          'x-b3-traceid': '9ef72794e0b2f5fee72017d892ff7fa9'
         },
         body: slotData
       });
@@ -558,8 +579,15 @@ class PeopleFirstAuth {
       const response = await makeRequest('https://peoplefirst.ril.com/wpsapi/WPS_NJ_HostJoinGame/1.0.0/hostgame', {
         method: 'POST',
         headers: {
-          'authorization': `Bearer ${this.authToken}`,
-          'content-type': 'application/json'
+          'authorization': `Bearer ${this.authToken.access_token}`,
+          'content-type': 'application/json',
+          'custom-header': '9ef72794e0b2f5fee72017d892ff7fa9:da242b56d6fca967:0:01',
+          'sessionid': 'G9R71RNM6MC5FmX0B4u39BxcPo1dmTfpee92DNON3STP6SjP4FavR73NQJrU1607aaBn7mhMJE6_1765196743453',
+          'traceparent': '00-9ef72794e0b2f5fee72017d892ff7fa9-da242b56d6fca967-01',
+          'x-amzn-trace-id': 'Root=1-9ef72794-e0b2f5fee72017d892ff7fa9;Parent=da242b56d6fca967;Sampled=1',
+          'x-b3-sampled': '1',
+          'x-b3-spanid': 'da242b56d6fca967',
+          'x-b3-traceid': '9ef72794e0b2f5fee72017d892ff7fa9'
         },
         body: bookingData
       });
