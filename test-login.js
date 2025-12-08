@@ -18,9 +18,9 @@ async function testFullAuthentication() {
     }
 
     console.log('✅ Login successful!');
-    console.log('👤 User:', loginResult.data?.data?.employeeName);
-    console.log('📧 Email:', loginResult.data?.data?.emailID);
-    console.log('📱 Mobile:', loginResult.data?.data?.mobile_no);
+    console.log('👤 User:', loginResult.data?.data?.employeeName || 'Unknown');
+    console.log('📧 Email:', loginResult.data?.data?.emailID || 'Unknown');
+    console.log('📱 Mobile:', loginResult.data?.data?.mobile_no || 'Unknown');
 
     // Step 2: Request OTP
     console.log('\n📱 Step 2: Requesting OTP');
@@ -39,45 +39,45 @@ async function testFullAuthentication() {
     const otp = await getOTPFromUser();
 
     // Step 4: Verify OTP
-    console.log('\n🔍 Step 3: Verifying OTP');
+    console.log('\n🔍 Step 4: Verifying OTP');
     const verifyResult = await auth.verifyOTP(otp);
 
-    if (verifyResult.success) {
-      console.log('✅ OTP verified! Fully authenticated.');
-
-      // Step 5: Fetch token
-      console.log('\n🎫 Step 4: Fetching authentication token');
-      const tokenResult = await auth.fetchToken();
-
-      if (tokenResult.success) {
-        console.log('✅ Token fetched successfully!');
-        console.log('🔑 Token:', tokenResult.token);
-
-        // Test authenticated request (uncomment when you have a real endpoint)
-        /*
-        try {
-          const testResponse = await auth.makeAuthenticatedRequest('GET', 'https://some-protected-endpoint.com');
-          console.log('🔒 Protected endpoint response:', testResponse.data);
-        } catch (error) {
-          console.log('⚠️ Protected endpoint test failed (expected if endpoint doesn\'t exist):', error.message);
-        }
-        */
-
-        // Show authentication status
-        console.log('\n📊 Final Authentication Status:');
-        console.log('🔓 Logged in:', auth.isLoggedIn());
-        console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated());
-        console.log('🎫 Token available:', !!auth.getAuthToken());
-
-      } else {
-        console.log('❌ Token fetch failed!');
-        console.log('📋 Error details:', tokenResult);
-      }
-
-    } else {
+    if (!verifyResult.success) {
       console.log('❌ OTP verification failed!');
       console.log('📋 Error details:', verifyResult);
+      return;
     }
+
+    console.log('✅ OTP verified! Fully authenticated.');
+
+    // Step 5: Fetch token
+    console.log('\n🎫 Step 5: Fetching authentication token');
+    const tokenResult = await auth.fetchToken();
+
+    if (!tokenResult.success) {
+      console.log('❌ Token fetch failed!');
+      console.log('📋 Error details:', tokenResult);
+      return;
+    }
+
+    console.log('✅ Token fetched successfully!');
+    console.log('🔑 Token:', tokenResult.token);
+
+    // Test authenticated request (uncomment when you have a real endpoint)
+    /*
+    try {
+      const testResponse = await auth.makeAuthenticatedRequest('GET', 'https://some-protected-endpoint.com');
+      console.log('🔒 Protected endpoint response:', testResponse.data);
+    } catch (error) {
+      console.log('⚠️ Protected endpoint test failed (expected if endpoint doesn\'t exist):', error.message);
+    }
+    */
+
+    // Show final authentication status
+    console.log('\n📊 Final Authentication Status:');
+    console.log('🔓 Logged in:', auth.isLoggedIn());
+    console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated());
+    console.log('🎫 Token available:', !!auth.getAuthToken());
 
     // Logout
     auth.logout();
