@@ -1,6 +1,7 @@
 const https = require('https');
 const http = require('http');
 const { URL } = require('url');
+const readline = require('readline');
 
 // Simple cookie jar implementation
 class SimpleCookieJar {
@@ -417,10 +418,10 @@ class PeopleFirstAuth {
     }
 
     const {
-      activityCode = 'GYMM',
+      activityCode = 'ZUMB',
       locationCode = 'RIL0000005',
-      buildingCode = 'AL2',
-      gameDate = new Date().toISOString().split('T')[0],
+      buildingCode = 'AL20',
+      gameDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       slotCode = 'SL339',
       proficiency = '2'
     } = options;
@@ -514,10 +515,11 @@ class PeopleFirstAuth {
     }
 
     const {
-      activityCode = 'GYMM',
+      activityCode = 'ZUMB',
       locationCode = 'RIL0000005',
-      buildingCode = 'AL2',
-      gameDate = new Date().toISOString().split('T')[0],
+      buildingCode = 'AL20',
+      //get tomorrow's date
+      gameDate = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0],
       slotCode = 'SL339',
       proficiency = '2'
     } = options;
@@ -747,8 +749,75 @@ if (require.main === module) {
         console.log('\n📱 Step 2 - Requesting OTP...');
         const otpResult = await auth.requestOTP();
 
-        if (otpResult.success) {
-          console.log('✅ OTP sent! Please enter the OTP code:');
+          if (otpResult.success) {
+            console.log('✅ OTP sent! Please enter the OTP code:');
+
+            // Create readline interface for user input
+            const rl = readline.createInterface({
+              input: process.stdin,
+              output: process.stdout
+            });
+
+            // Get OTP from user input
+            const otp = await new Promise((resolve) => {
+              rl.question('Enter OTP code: ', (answer) => {
+                rl.close();
+                resolve(answer.trim());
+              });
+            });
+
+            console.log('🔄 OTP code received, verifying...');
+
+            // Verify OTP
+            const verifyResult = await auth.verifyOTP(otp);
+            if (verifyResult.success) {
+              console.log('✅ OTP verified!');
+
+              // Fetch token
+              const tokenResult = await auth.fetchToken();
+              if (tokenResult.success) {
+                console.log('✅ Token fetched successfully!');
+                console.log('🔑 Token:', tokenResult.token);
+
+                // Check available slots
+                const slotsResult = await auth.checkAvailableSlots({
+                  activityCode: 'ZUMB',
+                  buildingCode: 'AL20'
+                });
+                if (slotsResult.success) {
+                  console.log('✅ Available slots checked!');
+                  console.log(`📅 Found ${slotsResult.availableSlots?.length || 0} slot(s)`);
+
+                  // Book first available slot
+                  const availableSlots = slotsResult.availableSlots?.filter(slot => slot.AvailableCount > 0) || [];
+                  if (availableSlots.length > 0) {
+                    const slotToBook = availableSlots[0];
+                    console.log(`🎯 Booking slot: ${slotToBook.Slots} (${slotToBook.SlotCode})`);
+
+                    const bookingResult = await auth.bookSlot({
+                      slotCode: slotToBook.SlotCode,
+                      activityCode: 'ZUMB',
+                      buildingCode: 'AL20'
+                    });
+
+                    if (bookingResult.success) {
+                      console.log('✅ Slot booked successfully!');
+                      console.log(`🎉 You have booked: ${slotToBook.Slots} (${slotToBook.SlotCode})`);
+                    } else {
+                      console.log('❌ Slot booking failed:', bookingResult.error || bookingResult.status);
+                    }
+                  } else {
+                    console.log('❌ No available slots found');
+                  }
+                } else {
+                  console.log('❌ Slots check failed:', slotsResult.error || slotsResult.status);
+                }
+              } else {
+                console.log('❌ Token fetch failed:', tokenResult.error || tokenResult.status);
+              }
+            } else {
+              console.log('❌ OTP verification failed:', verifyResult.error || verifyResult.status);
+            }
 
           // Note: In a real application, you'd get OTP from user input
           // For demo purposes, we'll show the flow
