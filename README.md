@@ -166,22 +166,31 @@ if (slots.availableSlots.length > 0) {
 }
 ```
 
+**Demo Mode**: When using `demo-token-for-testing`, the methods return mock data for testing without real API calls.
+
 ### Activity Codes
 
 - `GYMM` - Zumba/Gym activities
 - Other codes may be available for different activities
 
-### Testing Authentication
+### Testing
 
-Run the authentication test:
+Run the complete test suite (authentication + slot booking):
 ```bash
 npm test
 ```
 
-Or run the login module directly:
+This will test:
+- Authentication flow (may fail in sandbox due to network restrictions)
+- Slot availability checking with demo data
+- Slot booking simulation
+
+Or run the authentication module directly:
 ```bash
-npm run login
+npm run auth
 ```
+
+**Note**: Tests include demo authentication for slot booking functionality when real authentication fails in sandbox environments.
 
 ## Project Structure
 
