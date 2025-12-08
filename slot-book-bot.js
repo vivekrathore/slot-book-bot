@@ -53,7 +53,19 @@ function loadConfig() {
   try {
     if (fs.existsSync(CONFIG_FILE)) {
       const data = fs.readFileSync(CONFIG_FILE, 'utf8');
-      return JSON.parse(data);
+      const config = JSON.parse(data);
+
+      // Validate configuration has required fields
+      const required = ['username', 'password', 'activity', 'buildingCode'];
+      const missing = required.filter(field => !config[field]);
+
+      if (missing.length > 0) {
+        console.log(`⚠️  Configuration missing fields: ${missing.join(', ')}`);
+        console.log('💡 Please run setup again.');
+        return null;
+      }
+
+      return config;
     }
   } catch (error) {
     console.error('❌ Failed to load configuration:', error.message);
@@ -69,6 +81,113 @@ function getTimeUntilMidnight() {
 
   const timeDiff = midnight - now;
   return timeDiff;
+}
+
+// Smart authentication function that tries stored data first
+async function authenticateWithStoredData(auth, config) {
+  console.log('🔄 Attempting smart authentication...');
+
+  // Try to use stored token if it's recent (within 1 hour)
+  if (config.authToken && config.lastLogin) {
+    const lastLogin = new Date(config.lastLogin);
+    const now = new Date();
+    const hoursSinceLogin = (now - lastLogin) / (1000 * 60 * 60);
+
+    if (hoursSinceLogin < 1) { // Token valid for 1 hour
+      console.log('🔄 Using stored authentication token...');
+
+      // Try to make a test API call to check if token is still valid
+      try {
+        const testResult = await auth.checkAvailableSlots({
+          activityCode: config.activity,
+          buildingCode: config.buildingCode
+        });
+
+        if (testResult.success) {
+          console.log('✅ Stored token is still valid!');
+          return { success: true, method: 'stored' };
+        }
+      } catch (error) {
+        console.log('⚠️  Stored token expired, proceeding with fresh authentication...');
+      }
+    }
+  }
+
+  // Fall back to fresh authentication
+  console.log('🔐 Performing fresh authentication...');
+
+  // Login
+  const loginResult = await auth.login(config.username, config.password);
+  if (!loginResult.success) {
+    throw new Error('Login failed: ' + (loginResult.error || loginResult.status));
+  }
+  console.log('✅ Login successful!');
+
+  // Request OTP
+  const otpResult = await auth.requestOTP();
+  if (!otpResult.success) {
+    throw new Error('OTP request failed: ' + (otpResult.error || otpResult.status));
+  }
+  console.log('✅ OTP sent to mobile!');
+
+  // Try saved OTP first
+  let otp = null;
+  if (config.lastOTP && config.lastOTPTime) {
+    const otpAge = Date.now() - new Date(config.lastOTPTime).getTime();
+    const maxOTPAge = 5 * 60 * 1000; // 5 minutes
+
+    if (otpAge < maxOTPAge) {
+      console.log('🔄 Trying saved OTP...');
+      otp = config.lastOTP;
+    }
+  }
+
+  // If no saved OTP or it's too old, ask for new one
+  if (!otp) {
+    console.log('\n⚠️  OTP Required for booking!');
+    console.log('📱 Please check your mobile for OTP code.');
+
+    const rl = createReadlineInterface();
+    otp = await askQuestion(rl, '🔢 Enter OTP code: ');
+    rl.close();
+  }
+
+  // Verify OTP
+  const verifyResult = await auth.verifyOTP(otp);
+  if (!verifyResult.success) {
+    // If saved OTP failed, try getting new one
+    if (otp === config.lastOTP) {
+      console.log('❌ Saved OTP failed, please enter current OTP:');
+      const rl = createReadlineInterface();
+      otp = await askQuestion(rl, '🔢 Enter current OTP code: ');
+      rl.close();
+
+      const retryResult = await auth.verifyOTP(otp);
+      if (!retryResult.success) {
+        throw new Error('OTP verification failed: ' + (retryResult.error || retryResult.status));
+      }
+    } else {
+      throw new Error('OTP verification failed: ' + (verifyResult.error || verifyResult.status));
+    }
+  }
+  console.log('✅ OTP verified!');
+
+  // Fetch token
+  const tokenResult = await auth.fetchToken();
+  if (!tokenResult.success) {
+    throw new Error('Token fetch failed: ' + (tokenResult.error || tokenResult.status));
+  }
+  console.log('✅ Token fetched!');
+
+  // Update stored data
+  config.authToken = auth.getAuthToken();
+  config.sessionCookies = auth.getSessionCookies();
+  config.lastOTP = otp;
+  config.lastOTPTime = new Date().toISOString();
+  config.lastLogin = new Date().toISOString();
+  saveConfig(config);
+
+  return { success: true, method: 'fresh', otp: otp };
 }
 
 // Format time duration
@@ -196,7 +315,7 @@ async function setupBooking() {
     tomorrow.setDate(tomorrow.getDate() + 1);
     const gameDate = tomorrow.toISOString().split('T')[0];
 
-    // Save configuration
+    // Save configuration with authentication data
     const config = {
       username,
       password,
@@ -204,6 +323,12 @@ async function setupBooking() {
       gameDate,
       buildingCode: ACTIVITIES[activity].building,
       locationCode: 'RIL0000005',
+      // Store authentication data for automatic re-authentication
+      authToken: auth.getAuthToken(),
+      sessionCookies: auth.getSessionCookies(),
+      lastOTP: otp,  // Save OTP for potential reuse
+      lastOTPTime: new Date().toISOString(),
+      lastLogin: new Date().toISOString(),
       createdAt: new Date().toISOString()
     };
 
@@ -232,45 +357,21 @@ async function runAutomatedBooking(config) {
     // Wait until midnight
     await waitUntilMidnight();
 
-    console.log('\n🔐 Starting authentication...');
+    console.log('\n🔐 Starting automated authentication...');
     const auth = new PeopleFirstAuth();
 
-    // Login
-    const loginResult = await auth.login(config.username, config.password);
-    if (!loginResult.success) {
-      throw new Error('Login failed: ' + (loginResult.error || loginResult.status));
+    // Use smart authentication that tries stored data first
+    const authResult = await authenticateWithStoredData(auth, config);
+
+    if (!authResult.success) {
+      throw new Error('Authentication failed');
     }
-    console.log('✅ Login successful!');
 
-    // Request OTP
-    const otpResult = await auth.requestOTP();
-    if (!otpResult.success) {
-      throw new Error('OTP request failed: ' + (otpResult.error || otpResult.status));
+    if (authResult.method === 'stored') {
+      console.log('✅ Using stored authentication - no manual intervention needed!');
+    } else {
+      console.log('✅ Fresh authentication completed successfully!');
     }
-    console.log('✅ OTP sent to mobile!');
-
-    // For automated booking, we need OTP from user
-    // In a production version, you might want to implement OTP retrieval
-    console.log('\n⚠️  OTP Required for booking!');
-    console.log('📱 Please check your mobile for OTP code.');
-
-    const rl = createReadlineInterface();
-    const otp = await askQuestion(rl, '🔢 Enter OTP code: ');
-    rl.close();
-
-    // Verify OTP
-    const verifyResult = await auth.verifyOTP(otp);
-    if (!verifyResult.success) {
-      throw new Error('OTP verification failed: ' + (verifyResult.error || verifyResult.status));
-    }
-    console.log('✅ OTP verified!');
-
-    // Fetch token
-    const tokenResult = await auth.fetchToken();
-    if (!tokenResult.success) {
-      throw new Error('Token fetch failed: ' + (tokenResult.error || tokenResult.status));
-    }
-    console.log('✅ Token fetched!');
 
     // Check available slots
     console.log(`\n🔍 Checking available ${ACTIVITIES[config.activity].name} slots...`);

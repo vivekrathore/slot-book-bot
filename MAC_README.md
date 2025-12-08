@@ -38,10 +38,12 @@ When you run the bot for the first time, it will:
 ## ⏰ Automated Booking
 
 After setup, the bot will:
-- ✅ Save your preferences
+- ✅ Save your credentials, preferences, and authentication data
 - ⏰ **Wait until 12:00 AM (midnight)**
-- 🔄 Automatically login and book the first available slot
-- 🎯 Send confirmation when booking is complete
+- 🔄 **Smart Authentication**: Try stored token first, auto-reauthenticate if needed
+- 📱 **OTP Handling**: Reuse recent OTP when possible, prompt only when necessary
+- 🎯 Automatically book the first available slot
+- 💾 Update stored authentication data for next run
 
 ## 🎯 Available Activities
 
