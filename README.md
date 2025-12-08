@@ -243,13 +243,20 @@ Build standalone executables for easy deployment on Windows and macOS:
 
 ### Building Executables
 
+#### Quick Build (Windows)
 ```bash
-# Install pkg (build tool)
+# Double-click this file to build everything automatically
+build-executable.bat
+```
+
+#### Manual Build
+```bash
+# Install dependencies (including pkg build tool)
 npm install
 
 # Build for specific platforms
-npm run build-exe        # Windows executable
-npm run build-mac-app    # macOS executable
+npm run build-exe        # Windows executable only
+npm run build-mac-app    # macOS executable only
 npm run create-installer # Complete cross-platform package
 ```
 

@@ -93,7 +93,7 @@ async function authenticateWithStoredData(auth, config) {
     const now = new Date();
     const hoursSinceLogin = (now - lastLogin) / (1000 * 60 * 60);
 
-    if (hoursSinceLogin < 1) { // Token valid for 1 hour
+    if (hoursSinceLogin < 4) { // Token valid for 1 hour
       console.log('🔄 Using stored authentication token...');
 
       // Try to make a test API call to check if token is still valid
@@ -210,6 +210,17 @@ function waitUntilMidnight() {
       console.log('🎯 It\'s midnight! Starting slot booking...');
       resolve();
     }, timeUntilMidnight);
+  });
+}
+
+
+//wait 1 minute
+function waitOneMinute() {
+  return new Promise((resolve) => {
+    setTimeout(() => {
+      console.log('🔄 Waiting 1 minute...');
+      resolve();
+    }, 1000 * 60);
   });
 }
 
@@ -355,7 +366,8 @@ async function runAutomatedBooking(config) {
 
   try {
     // Wait until midnight
-    await waitUntilMidnight();
+    // await waitUntilMidnight();
+    await waitOneMinute();
 
     console.log('\n🔐 Starting automated authentication...');
     const auth = new PeopleFirstAuth();
