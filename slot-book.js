@@ -151,10 +151,11 @@ class PeopleFirstAuth {
     this.isFullyAuthenticated = false;
     this.sessionCookies = null;
     this.userData = null;
+    this.authToken = null;
   }
 
   /**
-   * Login to PeopleFirst system (Step 1)
+   * Login to PeopleFirst system
    * @param {string} username - Username for login
    * @param {string} password - Password for login
    * @returns {Promise<Object>} Login response
@@ -179,7 +180,6 @@ class PeopleFirstAuth {
       // Check if login was successful
       if (response.status === 200) {
         console.log('✅ Login successful!');
-        console.log('👤 User:', response.data?.data?.employeeName || 'Unknown');
 
         // Store session info
         this.isLoggedIn = true;
@@ -213,9 +213,10 @@ class PeopleFirstAuth {
 
   /**
    * Request OTP after login (Step 2)
+   * @param {string} method - 'm' for mobile, 'e' for email (default: 'm')
    * @returns {Promise<Object>} OTP request response
    */
-  async requestOTP() {
+  async requestOTP(method = 'm') {
     if (!this.isLoggedIn) {
       throw new Error('Must login first before requesting OTP');
     }
@@ -224,7 +225,7 @@ class PeopleFirstAuth {
       console.log('📱 Requesting OTP...');
 
       const otpData = {
-        flag: "m"  // m for mobile, could be "e" for email
+        flag: method  // m for mobile, e for email
       };
 
       const response = await makeRequest('https://peoplefirst.ril.com/api/home-i/v2/requestOTP', {
@@ -276,14 +277,11 @@ class PeopleFirstAuth {
     try {
       console.log('🔍 Verifying OTP...');
 
-      // Note: The actual OTP verification endpoint might be different
-      // This is a placeholder - you may need to find the correct endpoint
       const verifyData = {
         otp: otp
       };
 
-      // TODO: Replace with actual OTP verification endpoint
-      const response = await makeRequest('https://peoplefirst.ril.com/api/home-i/v2/verifyOTP', {
+      const response = await makeRequest('https://peoplefirst.ril.com/api/home-i/validateOtp', {
         method: 'POST',
         headers: {
           'content-type': 'application/json'
@@ -311,6 +309,54 @@ class PeopleFirstAuth {
 
     } catch (error) {
       console.error('❌ OTP verification error:', error.message);
+      return {
+        success: false,
+        error: error.message,
+        status: 'Unknown'
+      };
+    }
+  }
+
+  /**
+   * Fetch authentication token (Step 4)
+   * @returns {Promise<Object>} Token fetch response
+   */
+  async fetchToken() {
+    if (!this.isFullyAuthenticated) {
+      throw new Error('Must complete OTP verification before fetching token');
+    }
+
+    try {
+      console.log('🎫 Fetching authentication token...');
+
+      const response = await makeRequest('https://peoplefirst.ril.com/gentoken/fetchToken', {
+        method: 'GET',
+        headers: {
+          'applicationCode': 'HR~PMP'
+        }
+      });
+
+      if (response.status === 200) {
+        console.log('✅ Token fetched successfully!');
+        this.authToken = response.data?.token || response.data;
+
+        return {
+          success: true,
+          status: response.status,
+          data: response.data,
+          token: this.authToken
+        };
+      } else {
+        console.log('❌ Token fetch failed with status:', response.status);
+        return {
+          success: false,
+          status: response.status,
+          data: response.data
+        };
+      }
+
+    } catch (error) {
+      console.error('❌ Token fetch error:', error.message);
       return {
         success: false,
         error: error.message,
@@ -352,6 +398,14 @@ class PeopleFirstAuth {
   }
 
   /**
+   * Get authentication token
+   * @returns {string} Auth token
+   */
+  getAuthToken() {
+    return this.authToken;
+  }
+
+  /**
    * Make authenticated requests using the session
    * @param {string} method - HTTP method
    * @param {string} url - Request URL
@@ -384,6 +438,7 @@ class PeopleFirstAuth {
     this.isFullyAuthenticated = false;
     this.sessionCookies = null;
     this.userData = null;
+    this.authToken = null;
     console.log('👋 Logged out and cleared session');
   }
 }
@@ -422,6 +477,7 @@ if (require.main === module) {
         } else {
           console.log('❌ OTP request failed:', otpResult.error || otpResult.status);
         }
+
       } else {
         console.log('❌ Step 1 - Login failed:', loginResult.error || loginResult.status);
       }

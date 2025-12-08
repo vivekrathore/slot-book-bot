@@ -59,7 +59,14 @@ Get available slots (placeholder - to be implemented).
 
 ## Authentication
 
-The bot includes a PeopleFirst authentication module for accessing RIL's internal systems.
+The bot includes a complete PeopleFirst authentication module for accessing RIL's internal systems with OTP verification.
+
+### Authentication Flow
+
+1. **Login** - Authenticate with username/password
+2. **Request OTP** - Send OTP to mobile/email
+3. **Verify OTP** - Complete two-factor authentication
+4. **Fetch Token** - Get authentication token for API access
 
 ### Usage
 
@@ -68,29 +75,31 @@ const { PeopleFirstAuth } = require('./slot-book');
 
 const auth = new PeopleFirstAuth();
 
-// Step 1: Login
-const loginResult = await auth.login('username', 'password');
+try {
+  // Step 1: Login
+  const loginResult = await auth.login('username', 'password');
+  if (!loginResult.success) throw new Error('Login failed');
 
-if (loginResult.success) {
-  console.log('User:', loginResult.data.data.employeeName);
+  // Step 2: Request OTP (mobile by default)
+  const otpResult = await auth.requestOTP('m'); // 'm' for mobile, 'e' for email
+  if (!otpResult.success) throw new Error('OTP request failed');
 
-  // Step 2: Request OTP
-  const otpResult = await auth.requestOTP();
+  // Step 3: Verify OTP (get from user input)
+  const verifyResult = await auth.verifyOTP('123456');
+  if (!verifyResult.success) throw new Error('OTP verification failed');
 
-  if (otpResult.success) {
-    // Step 3: Verify OTP (get OTP from user input)
-    const otp = await getUserOTP(); // Implement this function
-    const verifyResult = await auth.verifyOTP(otp);
+  // Step 4: Fetch authentication token
+  const tokenResult = await auth.fetchToken();
+  if (!tokenResult.success) throw new Error('Token fetch failed');
 
-    if (verifyResult.success) {
-      // Step 4: Make authenticated requests
-      const response = await auth.makeAuthenticatedRequest('GET', 'https://protected-endpoint.com');
-    }
-  }
+  // Now fully authenticated - can make protected requests
+  const response = await auth.makeAuthenticatedRequest('GET', 'https://protected-endpoint.com');
+
+} catch (error) {
+  console.error('Authentication failed:', error.message);
+} finally {
+  auth.logout(); // Clean up session
 }
-
-// Logout
-auth.logout();
 ```
 
 ### Testing Authentication

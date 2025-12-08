@@ -43,23 +43,36 @@ async function testFullAuthentication() {
     const verifyResult = await auth.verifyOTP(otp);
 
     if (verifyResult.success) {
-      console.log('✅ Full authentication successful!');
-      console.log('🎉 You are now fully authenticated and can access protected endpoints');
+      console.log('✅ OTP verified! Fully authenticated.');
 
-      // Test authenticated request (uncomment when you have a real endpoint)
-      /*
-      try {
-        const testResponse = await auth.makeAuthenticatedRequest('GET', 'https://some-protected-endpoint.com');
-        console.log('🔒 Protected endpoint response:', testResponse.data);
-      } catch (error) {
-        console.log('⚠️ Protected endpoint test failed (expected if endpoint doesn\'t exist):', error.message);
+      // Step 5: Fetch token
+      console.log('\n🎫 Step 4: Fetching authentication token');
+      const tokenResult = await auth.fetchToken();
+
+      if (tokenResult.success) {
+        console.log('✅ Token fetched successfully!');
+        console.log('🔑 Token:', tokenResult.token);
+
+        // Test authenticated request (uncomment when you have a real endpoint)
+        /*
+        try {
+          const testResponse = await auth.makeAuthenticatedRequest('GET', 'https://some-protected-endpoint.com');
+          console.log('🔒 Protected endpoint response:', testResponse.data);
+        } catch (error) {
+          console.log('⚠️ Protected endpoint test failed (expected if endpoint doesn\'t exist):', error.message);
+        }
+        */
+
+        // Show authentication status
+        console.log('\n📊 Final Authentication Status:');
+        console.log('🔓 Logged in:', auth.isLoggedIn());
+        console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated());
+        console.log('🎫 Token available:', !!auth.getAuthToken());
+
+      } else {
+        console.log('❌ Token fetch failed!');
+        console.log('📋 Error details:', tokenResult);
       }
-      */
-
-      // Show authentication status
-      console.log('\n📊 Authentication Status:');
-      console.log('🔓 Logged in:', auth.isLoggedIn());
-      console.log('🔒 Fully authenticated:', auth.isFullyAuthenticated());
 
     } else {
       console.log('❌ OTP verification failed!');
