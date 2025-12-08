@@ -8,6 +8,7 @@
     "dev": "nodemon index.js",
     "test": "node test-login.js",
     "auth": "node slot-book.js",
+    "auth-axios": "node slot-book-axios.js",
     "book": "node test-login.js --book-only"
   },
   "keywords": ["bot", "booking", "slots"],

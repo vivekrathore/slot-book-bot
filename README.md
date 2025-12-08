@@ -214,6 +214,26 @@ This will:
 5. Check available Zumba slots for tomorrow
 6. Book the first available slot
 
+### Troubleshooting SSL Issues
+
+If you encounter SSL/TLS handshake errors:
+
+1. **Check your Node.js version**: Ensure you're using Node.js 16+ for better TLS support
+2. **Network connectivity**: Ensure you can access `peoplefirst.ril.com` from your network
+3. **Corporate proxy**: You may need to configure proxy settings if behind a corporate firewall
+4. **VPN**: Some corporate systems require VPN access
+
+#### Alternative: Using Axios (if built-in HTTPS fails)
+
+If the built-in HTTPS client continues to fail, we provide an axios-based alternative:
+
+```bash
+npm install axios
+npm run auth-axios  # Use axios version
+```
+
+The axios version (`slot-book-axios.js`) includes enhanced SSL/TLS configuration that may work better with corporate systems.
+
 **Note**: Tests include demo authentication for slot booking functionality when real authentication fails in sandbox environments.
 
 ## Project Structure
