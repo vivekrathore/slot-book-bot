@@ -58,3 +58,4 @@ Write-Host "For first-time setup, the bot will ask for credentials." -Foreground
 Write-Host ""
 
 Read-Host "Press Enter to exit"
+

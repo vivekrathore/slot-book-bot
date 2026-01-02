@@ -26,3 +26,4 @@ chmod +x slot-book-bot-mac
 echo ""
 echo "Press Enter to exit..."
 read -p ""
+

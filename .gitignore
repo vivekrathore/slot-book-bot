@@ -72,7 +72,6 @@ jspm_packages/
 
 # Nuxt.js build / generate output
 .nuxt
-dist
 
 # Gatsby files
 .cache/
@@ -98,3 +97,4 @@ logs
 .Trashes
 ehthumbs.db
 Thumbs.db
+

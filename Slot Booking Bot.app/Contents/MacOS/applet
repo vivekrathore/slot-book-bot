@@ -28,3 +28,4 @@ tell application "Terminal"
     do script "cd '$APP_DIR' && echo '========================================" && echo '  PeopleFirst Slot Booking Bot' && echo '========================================" && echo '' && ./slot-book-bot-mac"
 end tell
 EOF
+

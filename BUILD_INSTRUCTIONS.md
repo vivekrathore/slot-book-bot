@@ -79,3 +79,4 @@ If you continue having issues:
 2. Ensure your Node.js version is 16+
 3. Try building on a different machine
 4. Check firewall/antivirus settings
+

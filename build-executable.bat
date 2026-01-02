@@ -59,3 +59,4 @@ echo For first-time setup, the bot will ask for credentials.
 echo.
 
 pause
+
