@@ -366,8 +366,8 @@ async function runAutomatedBooking(config) {
 
   try {
     // Wait until midnight
-    // await waitUntilMidnight();
-    await waitOneMinute();
+    await waitUntilMidnight();
+    // await waitOneMinute();
 
     console.log('\n🔐 Starting automated authentication...');
     const auth = new PeopleFirstAuth();
